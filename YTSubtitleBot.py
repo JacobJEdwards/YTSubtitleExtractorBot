@@ -72,8 +72,9 @@ async def upgradeSuccessful(update: Update, context: CallbackContext) -> None:
 
 
 async def main() -> None:
-    application = Application.builder().token("").build()
+    application = Application.builder().token("5561745160:AAG2eaMgXjV-LXu5w0JCHLzPM3r6Pz_dnis").build()
 
+    # basic command handlers
     application.add_handler(CommandHandler('start', start))
     application.add_handler(CommandHandler('help', helpInfo))
 

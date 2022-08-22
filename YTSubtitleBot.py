@@ -141,7 +141,6 @@ async def main() -> None:
 
     # Pre-checkout handler to final check
     application.add_handler(PreCheckoutQueryHandler(precheckout_callback))
-
     application.add_handler(MessageHandler(filters.SUCCESSFUL_PAYMENT, upgradeSuccessful))
 
     application.add_handler(MessageHandler(filters.ALL &

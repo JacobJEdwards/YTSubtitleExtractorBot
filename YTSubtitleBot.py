@@ -22,25 +22,31 @@ from telegram.ext import (
     PreCheckoutQueryHandler
 )
 
+from youtube_transcript_api import YouTubeTranscriptApi
+
 # Enable logging
 logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO
 )
 logger = logging.getLogger(__name__)
 
+
 r = redis.Redis()
-PAYMENT_TOKEN = ''
+PAYMENT_TOKEN = '284685063:TEST:ZmU4YzRkOTg0MmVm'
+headers = {
+	"videoid": "aWwWfuSj3Iw",
+	"X-RapidAPI-Key": ***REMOVED***,
+	"X-RapidAPI-Host": "youtube-transcriber.p.rapidapi.com"
+}
 
 
 async def start(update: Update, context: CallbackContext) -> None:
     userName = update.effective_user.first_name
     userID = update.effective_user.id
 
-    await update.message.reply_text('Hello')
+    await update.message.reply_text(f'Hello {userName}')
     # to expand
 
-
-    # different keyboards if premium or not - to also be added to premium function
     if r.sismember('premium', update.effective_user.id):
         keyboard = [
             [KeyboardButton("Get youtube video transcript!", callback_data="1")],
@@ -74,13 +80,26 @@ async def sendURL(update: Update, context: CallbackContext) -> None:
     await update.message.reply_text('Send a youtube link to extract the subtitles:')
 
 
-async def checkURL(update: Update, context: CallbackContext) -> None:
+async def checkURL(update: Update, context: CallbackContext, url) -> bool:
+    testURL = f'https://www.youtube.com/oembed?url={url}'
+    checkLink = requests.get(testURL)
+
+    return checkLink.status_code == 200
 
 
 async def getTranscript(update: Update, context: CallbackContext) -> None:
+    url = update.message.text
+    if await checkURL(update, context, url):
+        videoID = url.replace('https://www.youtube.com/watch?v=', '').split("&")[0]
+        transcript = YouTubeTranscriptApi.get_transcript(videoID)
+        for i in transcript:
+            print(i)
+    else:
+        await update.message.reply_text('Sorry, this is not a YouTube video link!\n\nPlease send a link to a youtube '
+                                        'video, or contact me @JacobJEdwards')
 
 
-async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+#async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
 
 async def upgrade(update: Update, context: CallbackContext) -> None:
@@ -106,6 +125,7 @@ async def upgrade(update: Update, context: CallbackContext) -> None:
             chat_id, title, description, payload, PAYMENT_TOKEN, currency, prices
         )
 
+
 async def precheckout_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     query = update.pre_checkout_query
     # check the payload, is this from your bot?
@@ -127,8 +147,8 @@ async def upgradeSuccessful(update: Update, context: CallbackContext) -> None:
     await update.message.reply_text('Upgrade successful! Welcome to premium.', reply_markup=menu_markup)
 
 
-async def main() -> None:
-    application = Application.builder().token("5561745160:AAG2eaMgXjV-LXu5w0JCHLzPM3r6Pz_dnis").build()
+def main() -> None:
+    application = Application.builder().token("5561745160:AAHLaEHPUZ1QGfdxcUrxnmJUKiI4WDo8pFY").build()
 
     # basic command handlers
     application.add_handler(CommandHandler('start', start))
@@ -146,9 +166,13 @@ async def main() -> None:
     application.add_handler(MessageHandler(filters.ALL &
                                            (filters.Entity(MessageEntity.URL) | filters.Entity(
                                                MessageEntity.TEXT_LINK)),
-                                           checkURL))
+                                           getTranscript))
 
     application.add_handler(MessageHandler(filters.ALL, unknownCommand))
+
+    # runs the bot
+    application.run_polling()
+
 
 if __name__ == '__main__':
     main()

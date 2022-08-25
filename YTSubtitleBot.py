@@ -89,6 +89,7 @@ async def checkURL(update: Update, context: CallbackContext, url) -> bool:
 
 async def getTranscript(update: Update, context: CallbackContext) -> None:
     url = update.message.text
+
     if await checkURL(update, context, url):
         videoID = url.replace('https://www.youtube.com/watch?v=', '').split("&")[0]
         transcript = YouTubeTranscriptApi.get_transcript(videoID)

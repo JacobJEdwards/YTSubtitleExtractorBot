@@ -32,11 +32,6 @@ logger = logging.getLogger(__name__)
 
 r = redis.Redis()
 PAYMENT_TOKEN = '284685063:TEST:ZmU4YzRkOTg0MmVm'
-headers = {
-    "videoid": "aWwWfuSj3Iw",
-    "X-RapidAPI-Key": ***REMOVED***,
-    "X-RapidAPI-Host": "youtube-transcriber.p.rapidapi.com"
-}
 
 
 async def start(update: Update, context: CallbackContext) -> None:
@@ -48,7 +43,7 @@ async def start(update: Update, context: CallbackContext) -> None:
     if numUses == 0:
         await update.message.reply_text(f'Hello {userName}\n\nWelcome to Youtube Video Transcript Bot!\n\nThis bot is'
                                         f' used to automatically extract the subtitles from a Youtube video.\n\n'
-                                        f'To begin, simply send a Youtube video link, and the trasncript will be '
+                                        f'To begin, simply send a Youtube video link, and the transcript will be '
                                         f'sent to you.\n\n')
 
     if not r.sismember('premium', userID):

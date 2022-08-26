@@ -9,6 +9,7 @@ import redis
 import requests
 import logging
 import json
+import os
 
 from telegram import *
 
@@ -79,22 +80,27 @@ async def unknownCommand(update: Update, context: CallbackContext) -> None:
                                     'ct the subtitle transcript!')
 
 
+# arbitrary function to add something to keyboard
 async def sendURL(update: Update, context: CallbackContext) -> None:
     await update.message.reply_text('Please send a Youtube video link to extract the subtitles:')
 
 
+# checks whether the url is valid
 async def checkURL(update: Update, context: CallbackContext, url) -> bool:
+    # if this url is valid, if returns true (status code 200, 404 means not true)
     testURL = f'https://www.youtube.com/oembed?url={url}'
     checkLink = requests.get(testURL)
 
     return checkLink.status_code == 200
 
 
+# downloads and sends the youtube video transcript to user
 async def getTranscript(update: Update, context: CallbackContext) -> None:
     userID = update.effective_user.id
     userKey = f'transcript:{userID}'
     numUses = r.scard(userKey)
 
+    # checks that the user is able to preform this process - if not sends inline message to upgrade
     if numUses > 7 and not r.sismember('premium', userID):
         await update.message.reply_text('Sorry, you have reached the free trial limit.\n\nPlease update to premium '
                                         'for unlimited use')
@@ -106,19 +112,33 @@ async def getTranscript(update: Update, context: CallbackContext) -> None:
 
     url = update.message.text
 
+    # checks if url is valid
     if await checkURL(update, context, url):
         videoID = url.replace('https://www.youtube.com/watch?v=', '').split("&")[0]
-        with open('temp.txt', 'w') as file:
+
+        # writes transcript to text file
+        with open('transcript.txt', 'w') as file:
             transcript = YouTubeTranscriptApi.get_transcript(videoID)
             for i in transcript:
                 file.write(i['text'])
                 file.write(' ')
 
-        with open('rawData.json', 'w') as rawFile:
+        # writes raw data to json file
+        with open('rawTranscript.json', 'w') as rawFile:
             json.dump(transcript, rawFile)
 
-        await context.bot.send_document(chat_id=userID, document=open('temp.txt', 'rb'))
-        await context.bot.send_document(chat_id=userID, document=open('rawData.json', 'rb'))
+        await context.bot.send_document(chat_id=userID, document=open('transcript.txt', 'rb'))
+        await context.bot.send_document(chat_id=userID, document=open('rawTranscript.json', 'rb'))
+
+        # logs the number of uses by saving url to a database
+        r.sadd(userKey, url)
+
+        # removes the files to save memory
+        if os.path.exists("transcript.txt"):
+            os.remove('transcript.txt')
+
+        if os.path.exists('rawTranscript.json'):
+            os.remove('rawTranscript.json')
 
     else:
         await update.message.reply_text('Sorry, this is not a YouTube video link!\n\nPlease send a link to a Youtube '

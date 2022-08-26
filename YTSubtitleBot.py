@@ -8,6 +8,7 @@
 import redis
 import requests
 import logging
+import json
 
 from telegram import *
 
@@ -94,7 +95,7 @@ async def getTranscript(update: Update, context: CallbackContext) -> None:
     userKey = f'transcript:{userID}'
     numUses = r.scard(userKey)
 
-    if not r.sismember('premium', userID):
+    if numUses > 7 and not r.sismember('premium', userID):
         await update.message.reply_text('Sorry, you have reached the free trial limit.\n\nPlease update to premium '
                                         'for unlimited use')
         inlineKeyboard = [[InlineKeyboardButton('Upgrade to Premium', callback_data='1')]]
@@ -107,9 +108,18 @@ async def getTranscript(update: Update, context: CallbackContext) -> None:
 
     if await checkURL(update, context, url):
         videoID = url.replace('https://www.youtube.com/watch?v=', '').split("&")[0]
-        transcript = YouTubeTranscriptApi.get_transcript(videoID)
-        for i in transcript:
-            await update.message.reply_text(i)
+        with open('temp.txt', 'w') as file:
+            transcript = YouTubeTranscriptApi.get_transcript(videoID)
+            for i in transcript:
+                file.write(i['text'])
+                file.write(' ')
+
+        with open('rawData.json', 'w') as rawFile:
+            json.dump(transcript, rawFile)
+
+        await context.bot.send_document(chat_id=userID, document=open('temp.txt', 'rb'))
+        await context.bot.send_document(chat_id=userID, document=open('rawData.json', 'rb'))
+
     else:
         await update.message.reply_text('Sorry, this is not a YouTube video link!\n\nPlease send a link to a Youtube '
                                         'video, or contact me @JacobJEdwards if you need extra help')

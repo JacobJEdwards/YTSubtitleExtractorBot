@@ -94,9 +94,13 @@ async def getTranscript(update: Update, context: CallbackContext) -> None:
     userKey = f'transcript:{userID}'
     numUses = r.scard(userKey)
 
-    if numUses > 8 and not r.sismember('premium', userID)
+    if not r.sismember('premium', userID):
         await update.message.reply_text('Sorry, you have reached the free trial limit.\n\nPlease update to premium '
                                         'for unlimited use')
+        inlineKeyboard = [[InlineKeyboardButton('Upgrade to Premium', callback_data='1')]]
+        reply_markup = InlineKeyboardMarkup(inlineKeyboard)
+
+        await update.message.reply_text('Click:', reply_markup=reply_markup)
         return
 
     url = update.message.text
@@ -111,7 +115,13 @@ async def getTranscript(update: Update, context: CallbackContext) -> None:
                                         'video, or contact me @JacobJEdwards if you need extra help')
 
 
-# async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    query = update.callback_query
+
+    # CallbackQueries need to be answered, even if no notification to the user is needed
+    await query.answer()
+    await query.edit_message_text(text="Thank you for choosing to upgrade!\nPay below:")
+    await upgrade(update, context)
 
 
 async def upgrade(update: Update, context: CallbackContext) -> None:
@@ -166,9 +176,11 @@ def main() -> None:
     application.add_handler(CommandHandler('start', start))
     application.add_handler(CommandHandler('help', helpInfo))
 
+    application.add_handler(CallbackQueryHandler(button))
+
     # handles the pre-made keyboard
     application.add_handler(MessageHandler(filters.Regex('Support!'), helpInfo))
-    application.add_handler(MessageHandler(filters.Regex('Get youtube video transcript!'), sendURL))
+    application.add_handler(MessageHandler(filters.Regex('Extract subtitles!'), sendURL))
     application.add_handler(MessageHandler(filters.Regex('Premium'), upgrade))
 
     # Pre-checkout handler to final check

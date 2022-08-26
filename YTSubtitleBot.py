@@ -30,35 +30,42 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-
 r = redis.Redis()
 PAYMENT_TOKEN = '284685063:TEST:ZmU4YzRkOTg0MmVm'
 headers = {
-	"videoid": "aWwWfuSj3Iw",
-	"X-RapidAPI-Key": ***REMOVED***,
-	"X-RapidAPI-Host": "youtube-transcriber.p.rapidapi.com"
+    "videoid": "aWwWfuSj3Iw",
+    "X-RapidAPI-Key": ***REMOVED***,
+    "X-RapidAPI-Host": "youtube-transcriber.p.rapidapi.com"
 }
 
 
 async def start(update: Update, context: CallbackContext) -> None:
     userName = update.effective_user.first_name
     userID = update.effective_user.id
+    userKey = f'transcript:{userID}'
+    numUses = r.scard(userKey)
 
-    await update.message.reply_text(f'Hello {userName}')
-    # to expand
+    if numUses == 0:
+        await update.message.reply_text(f'Hello {userName}\n\nWelcome to Youtube Video Transcript Bot!\n\nThis bot is'
+                                        f' used to automatically extract the subtitles from a Youtube video.\n\n'
+                                        f'To begin, simply send a Youtube video link, and the trasncript will be '
+                                        f'sent to you.\n\n')
 
-    if r.sismember('premium', update.effective_user.id):
+    if not r.sismember('premium', userID):
+        await update.message.reply_text(f'You have {8-numUses} uses remaining on your free trial.\n\nOr upgrade to '
+                                        f'Premium for unlimited use across a number of different bots!')
         keyboard = [
-            [KeyboardButton("Get youtube video transcript!", callback_data="1")],
-            [KeyboardButton("Support!", callback_data="3")],
-        ]
-    else:
-        keyboard = [
-            [KeyboardButton("Get youtube video transcript!", callback_data="1")],
+            [KeyboardButton("Get Youtube video transcript!", callback_data="1")],
             [
                 KeyboardButton("Premium", callback_data="2"),
                 KeyboardButton("Support!", callback_data="3"),
             ],
+        ]
+    else:
+        await update.message.reply_text('Your account is premium!\n\nUnlimited use!')
+        keyboard = [
+            [KeyboardButton("Get Youtube video transcript!", callback_data="1")],
+            [KeyboardButton("Support!", callback_data="3")],
         ]
 
     menu_markup = ReplyKeyboardMarkup(keyboard)
@@ -77,7 +84,7 @@ async def unknownCommand(update: Update, context: CallbackContext) -> None:
 
 
 async def sendURL(update: Update, context: CallbackContext) -> None:
-    await update.message.reply_text('Send a youtube link to extract the subtitles:')
+    await update.message.reply_text('Please send a Youtube video link to extract the subtitles:')
 
 
 async def checkURL(update: Update, context: CallbackContext, url) -> bool:
@@ -88,19 +95,28 @@ async def checkURL(update: Update, context: CallbackContext, url) -> bool:
 
 
 async def getTranscript(update: Update, context: CallbackContext) -> None:
+    userID = update.effective_user.id
+    userKey = f'transcript:{userID}'
+    numUses = r.scard(userKey)
+
+    if numUses > 8 and not r.sismember('premium', userID)
+        await update.message.reply_text('Sorry, you have reached the free trial limit.\n\nPlease update to premium '
+                                        'for unlimited use')
+        return
+
     url = update.message.text
 
     if await checkURL(update, context, url):
         videoID = url.replace('https://www.youtube.com/watch?v=', '').split("&")[0]
         transcript = YouTubeTranscriptApi.get_transcript(videoID)
         for i in transcript:
-            print(i)
+            await update.message.reply_text(i)
     else:
-        await update.message.reply_text('Sorry, this is not a YouTube video link!\n\nPlease send a link to a youtube '
-                                        'video, or contact me @JacobJEdwards')
+        await update.message.reply_text('Sorry, this is not a YouTube video link!\n\nPlease send a link to a Youtube '
+                                        'video, or contact me @JacobJEdwards if you need extra help')
 
 
-#async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+# async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
 
 async def upgrade(update: Update, context: CallbackContext) -> None:

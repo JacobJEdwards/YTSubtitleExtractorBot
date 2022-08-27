@@ -5,6 +5,12 @@
 # unless i want bot uses to be separate which i do
 # set called subtitleUses key userID:NumberOfUses -> also do this for other bot ?? simplicity sake
 
+# improvemnts -
+#when user sends url, get message in function - check url here
+# send inline query buttons - raw file or text file
+# run different functions based on output
+# alternatively do this in the transcript function right at the end - just pass the transcript to a different function?
+
 import redis
 import requests
 import logging

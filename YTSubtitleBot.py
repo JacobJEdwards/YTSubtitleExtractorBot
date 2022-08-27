@@ -100,13 +100,13 @@ async def checkURL(update: Update, context: CallbackContext, url) -> bool:
     return checkLink.status_code == 200
 
 
-# downloads and sends the youtube video transcript to user
-async def getTranscript(update: Update, context: CallbackContext) -> None:
+async def transcriptOptions(update: Update, context: CallbackContext) -> None:
     userID = update.effective_user.id
     userKey = f'transcript:{userID}'
     numUses = r.scard(userKey)
+    global url
+    url = update.message.text
 
-    # checks that the user is able to preform this process - if not sends inline message to upgrade
     if numUses > 7 and not r.sismember('premium', userID):
         await update.message.reply_text('Sorry, you have reached the free trial limit.\n\nPlease update to premium '
                                         'for unlimited use')
@@ -116,39 +116,59 @@ async def getTranscript(update: Update, context: CallbackContext) -> None:
         await update.message.reply_text('Click:', reply_markup=reply_markup)
         return
 
-    url = update.message.text
-
-    # checks if url is valid
-    if await checkURL(update, context, url):
-        videoID = url.replace('https://www.youtube.com/watch?v=', '').split("&")[0]
-
-        # writes transcript to text file
-        with open('transcript.txt', 'w') as file:
-            transcript = YouTubeTranscriptApi.get_transcript(videoID)
-            for i in transcript:
-                file.write(i['text'])
-                file.write(' ')
-
-        # writes raw data to json file
-        with open('rawTranscript.json', 'w') as rawFile:
-            json.dump(transcript, rawFile)
-
-        await context.bot.send_document(chat_id=userID, document=open('transcript.txt', 'rb'))
-        await context.bot.send_document(chat_id=userID, document=open('rawTranscript.json', 'rb'))
-
-        # logs the number of uses by saving url to a database
-        r.sadd(userKey, url)
-
-        # removes the files to save memory
-        if os.path.exists("transcript.txt"):
-            os.remove('transcript.txt')
-
-        if os.path.exists('rawTranscript.json'):
-            os.remove('rawTranscript.json')
+    elif await checkURL(update, context, url):
+        print('success')
+        await update.message.reply_text("Would you like the transcript as a textfile, or raw json file ->")
+        inlineKeyboard = [[InlineKeyboardButton('Textfile', callback_data=2)], [InlineKeyboardButton('Raw file',
+                                                                                                     callback_data=3)]]
+        reply_markup = InlineKeyboardMarkup(inlineKeyboard)
+        await update.message.reply_text('Select an option:', reply_markup=reply_markup)
 
     else:
-        await update.message.reply_text('Sorry, this is not a YouTube video link!\n\nPlease send a link to a Youtube '
-                                        'video, or contact me @JacobJEdwards if you need extra help')
+        await update.message.reply_text('This is not a valid Youtube URL')
+
+
+# downloads and sends the youtube video transcript to user
+async def getTranscript(update: Update, context: CallbackContext) -> None:
+    # checks if url is valid
+    userID = update.effective_user.id
+    userKey = f'transcript:{userID}'
+    videoID = url.replace('https://www.youtube.com/watch?v=', '').split("&")[0]
+
+    # writes transcript to text file
+    with open('transcript.txt', 'w') as file:
+        transcript = YouTubeTranscriptApi.get_transcript(videoID)
+        for i in transcript:
+            file.write(i['text'])
+            file.write(' ')
+
+    await context.bot.send_document(chat_id=userID, document=open('transcript.txt', 'rb'))
+
+    # logs the number of uses by saving url to a database
+    r.sadd(userKey, url)
+
+    # removes the files to save memory
+    if os.path.exists("transcript.txt"):
+        os.remove('transcript.txt')
+
+
+async def getTranscriptRaw(update: Update, context: CallbackContext) -> None:
+    userID = update.effective_user.id
+    userKey = f'transcript:{userID}'
+    videoID = url.replace('https://www.youtube.com/watch?v=', '').split("&")[0]
+
+    # writes raw data to json file
+    with open('rawTranscript.json', 'w') as rawFile:
+        transcript = YouTubeTranscriptApi.get_transcript(videoID)
+        json.dump(transcript, rawFile)
+
+    await context.bot.send_document(chat_id=userID, document=open('rawTranscript.json', 'rb'))
+
+    # logs the number of uses by saving url to a database
+    r.sadd(userKey, url)
+
+    if os.path.exists('rawTranscript.json'):
+        os.remove('rawTranscript.json')
 
 
 async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -156,8 +176,20 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
     # CallbackQueries need to be answered, even if no notification to the user is needed
     await query.answer()
-    await query.edit_message_text(text="Thank you for choosing to upgrade!\nPay below:")
-    await upgrade(update, context)
+    print(query.data)
+
+    if query.data == '1':
+        await query.edit_message_text(text="Thank you for choosing to upgrade!\nPay below:")
+        await upgrade(update, context)
+
+    elif query.data == '2':
+        await query.edit_message_text(text=f"Selected option: Textfile")
+        await getTranscript(update, context)
+    elif query.data == '3':
+        await query.edit_message_text(text=f"Selected option: Raw file")
+        await getTranscriptRaw(update, context)
+    else:
+        await context.bot.send_message(text='Invalid option', chat_id=update.effective_user.id)
 
 
 async def upgrade(update: Update, context: CallbackContext) -> None:
@@ -226,7 +258,7 @@ def main() -> None:
     application.add_handler(MessageHandler(filters.ALL &
                                            (filters.Entity(MessageEntity.URL) | filters.Entity(
                                                MessageEntity.TEXT_LINK)),
-                                           getTranscript))
+                                           transcriptOptions))
 
     application.add_handler(MessageHandler(filters.ALL, unknownCommand))
 

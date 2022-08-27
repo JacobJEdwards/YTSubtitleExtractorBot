@@ -163,7 +163,7 @@ async def getTranscriptRaw(update: Update, context: CallbackContext, url) -> Non
     try:
         transcript = YouTubeTranscriptApi.get_transcript(videoID)
         formatter = JSONFormatter()
-        json_formatted = formatter.format_transcript(transcript)
+        json_formatted = formatter.format_transcript(transcript, indent=2)
 
         # writes raw data to json file
         with open('rawTranscript.json', 'w') as rawFile:

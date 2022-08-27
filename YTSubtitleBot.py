@@ -17,7 +17,8 @@ from telegram.ext import (
     PreCheckoutQueryHandler
 )
 
-from youtube_transcript_api import YouTubeTranscriptApi
+from youtube_transcript_api import YouTubeTranscriptApi, TranscriptsDisabled
+from youtube_transcript_api.formatters import JSONFormatter, TextFormatter
 
 # Enable logging
 logging.basicConfig(
@@ -130,14 +131,15 @@ async def getTranscript(update: Update, context: CallbackContext, url) -> None:
     videoID = url.replace('https://www.youtube.com/watch?v=', '').split("&")[0]
 
     try:
+        transcript = YouTubeTranscriptApi.get_transcript(videoID)
+        formatter = TextFormatter()
+        text_formatted = formatter.format_transcript(transcript)
+
         # writes transcript to text file
         with open('transcript.txt', 'w') as file:
-            transcript = YouTubeTranscriptApi.get_transcript(videoID)
-            for i in transcript:
-                file.write(i['text'])
-                file.write(' ')
+            file.write(text_formatted)
 
-    except:
+    except TranscriptsDisabled:
         await context.bot.send_message(text='*Subtitles not available on this video*', chat_id=userID,
                                        parse_mode='Markdown')
         return
@@ -159,13 +161,15 @@ async def getTranscriptRaw(update: Update, context: CallbackContext, url) -> Non
     videoID = url.replace('https://www.youtube.com/watch?v=', '').split("&")[0]
 
     try:
+        transcript = YouTubeTranscriptApi.get_transcript(videoID)
+        formatter = JSONFormatter()
+        json_formatted = formatter.format_transcript(transcript)
+
         # writes raw data to json file
         with open('rawTranscript.json', 'w') as rawFile:
-            transcript = YouTubeTranscriptApi.get_transcript(videoID)
-            json.dump(transcript, rawFile)
+            rawFile.write(json_formatted)
 
-
-    except:
+    except TranscriptsDisabled:
         await context.bot.send_message(text='*Subtitles are not available for this video*', chat_id=userID,
                                        parse_mode='Markdown')
         return
@@ -175,7 +179,7 @@ async def getTranscriptRaw(update: Update, context: CallbackContext, url) -> Non
     # logs the number of uses by saving url to a database
     r.sadd(userKey, url)
 
-    # deletse the file after sending it
+    # deletes the file after sending it
     if os.path.exists('rawTranscript.json'):
         os.remove('rawTranscript.json')
 

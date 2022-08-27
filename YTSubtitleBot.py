@@ -6,7 +6,7 @@
 # set called subtitleUses key userID:NumberOfUses -> also do this for other bot ?? simplicity sake
 
 # improvemnts -
-#when user sends url, get message in function - check url here
+# when user sends url, get message in function - check url here
 # send inline query buttons - raw file or text file
 # run different functions based on output
 # alternatively do this in the transcript function right at the end - just pass the transcript to a different function?
@@ -59,7 +59,7 @@ async def start(update: Update, context: CallbackContext) -> None:
                                         f'sent to you.\n\n')
 
     if not r.sismember('premium', userID):
-        await update.message.reply_text(f'You have {8-numUses} uses remaining on your free trial.\n\nOr upgrade to '
+        await update.message.reply_text(f'You have {8 - numUses} uses remaining on your free trial.\n\nOr upgrade to '
                                         f'Premium for unlimited use across a number of different bots!')
         keyboard = [
             [KeyboardButton("Get Youtube video transcript!", callback_data="1")],

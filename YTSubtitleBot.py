@@ -129,12 +129,18 @@ async def getTranscript(update: Update, context: CallbackContext, url) -> None:
     userKey = f'transcript:{userID}'
     videoID = url.replace('https://www.youtube.com/watch?v=', '').split("&")[0]
 
-    # writes transcript to text file
-    with open('transcript.txt', 'w') as file:
-        transcript = YouTubeTranscriptApi.get_transcript(videoID)
-        for i in transcript:
-            file.write(i['text'])
-            file.write(' ')
+    try:
+        # writes transcript to text file
+        with open('transcript.txt', 'w') as file:
+            transcript = YouTubeTranscriptApi.get_transcript(videoID)
+            for i in transcript:
+                file.write(i['text'])
+                file.write(' ')
+
+    except:
+        await context.bot.send_message(text='*Subtitles not available on this video*', chat_id=userID,
+                                       parse_mode='Markdown')
+        return
 
     await context.bot.send_document(chat_id=userID, document=open('transcript.txt', 'rb'))
 
@@ -152,10 +158,17 @@ async def getTranscriptRaw(update: Update, context: CallbackContext, url) -> Non
     userKey = f'transcript:{userID}'
     videoID = url.replace('https://www.youtube.com/watch?v=', '').split("&")[0]
 
-    # writes raw data to json file
-    with open('rawTranscript.json', 'w') as rawFile:
-        transcript = YouTubeTranscriptApi.get_transcript(videoID)
-        json.dump(transcript, rawFile)
+    try:
+        # writes raw data to json file
+        with open('rawTranscript.json', 'w') as rawFile:
+            transcript = YouTubeTranscriptApi.get_transcript(videoID)
+            json.dump(transcript, rawFile)
+
+
+    except:
+        await context.bot.send_message(text='*Subtitles are not available for this video*', chat_id=userID,
+                                       parse_mode='Markdown')
+        return
 
     await context.bot.send_document(chat_id=userID, document=open('rawTranscript.json', 'rb'))
 

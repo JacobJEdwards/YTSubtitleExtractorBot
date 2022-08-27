@@ -1,20 +1,3 @@
-# need to figure out way to store uses - as to not conflict with other bot - possibly add to userID set
-# add to set with identifier - disregard this on url bot ? seems overcomplicated. Database???
-
-# or - also overcomplicated - create set called uses, in set store userid:number of uses. use for all bots?
-# unless i want bot uses to be separate which i do
-# set called subtitleUses key userID:NumberOfUses -> also do this for other bot ?? simplicity sake
-
-# improvemnts -
-# when user sends url, get message in function - check url here
-# send inline query buttons - raw file or text file
-# run different functions based on output
-# alternatively do this in the transcript function right at the end - just pass the transcript to a different function?
-
-# use conversation handler instead of defining url as global variables - dont like the idea of using global variables
-# need to learn conversation handlers in conjuction with inline keyboards
-# or find out how to use callback data ?? or context ??
-
 import redis
 import requests
 import logging
@@ -104,25 +87,30 @@ async def checkURL(update: Update, context: CallbackContext, url) -> bool:
     return checkLink.status_code == 200
 
 
+# allows the user to choose if they want a text file or json file using inline keyboards
 async def transcriptOptions(update: Update, context: CallbackContext) -> None:
+    # gets user identity stuff
     userID = update.effective_user.id
     userKey = f'transcript:{userID}'
     numUses = r.scard(userKey)
 
     url = update.message.text
 
+    # checks whether the user is able to use the bot
     if numUses > 7 and not r.sismember('premium', userID):
         await update.message.reply_text('Sorry, you have reached the free trial limit.\n\nPlease update to premium '
                                         'for unlimited use')
-        inlineKeyboard = [[InlineKeyboardButton('Upgrade to Premium', callback_data='1')]]
+        # sends inline keyboard to upgrade - callback data as keyboard used for other things
+        inlineKeyboard = [[InlineKeyboardButton('Upgrade to Premium', callback_data='upgrade')]]
         reply_markup = InlineKeyboardMarkup(inlineKeyboard)
 
         await update.message.reply_text('Click:', reply_markup=reply_markup)
         return
 
-    elif await checkURL(update, context, url):
-        print('success')
+    # if user passes the test the url is checked if its valid - if function returns true options are sent to user
+    if await checkURL(update, context, url):
         await update.message.reply_text("Would you like the transcript as a textfile, or raw JSON file ->")
+        # creates inline keyboard and allows me to pass data to the button function using callback data
         inlineKeyboard = [
             [InlineKeyboardButton('Textfile', callback_data=f'2:{url}')],
             [InlineKeyboardButton('Raw JSON file', callback_data=f'3:{url}')]
@@ -134,9 +122,9 @@ async def transcriptOptions(update: Update, context: CallbackContext) -> None:
         await update.message.reply_text('This is not a valid Youtube URL')
 
 
-# downloads and sends the youtube video transcript to user
+# downloads and sends the youtube video transcript to user as textfile
 async def getTranscript(update: Update, context: CallbackContext, url) -> None:
-    # checks if url is valid
+    # gets the data needed
     userID = update.effective_user.id
     userKey = f'transcript:{userID}'
     videoID = url.replace('https://www.youtube.com/watch?v=', '').split("&")[0]
@@ -159,6 +147,7 @@ async def getTranscript(update: Update, context: CallbackContext, url) -> None:
 
 
 async def getTranscriptRaw(update: Update, context: CallbackContext, url) -> None:
+    # gets data needed
     userID = update.effective_user.id
     userKey = f'transcript:{userID}'
     videoID = url.replace('https://www.youtube.com/watch?v=', '').split("&")[0]
@@ -173,33 +162,42 @@ async def getTranscriptRaw(update: Update, context: CallbackContext, url) -> Non
     # logs the number of uses by saving url to a database
     r.sadd(userKey, url)
 
+    # deletse the file after sending it
     if os.path.exists('rawTranscript.json'):
         os.remove('rawTranscript.json')
 
 
+# handles the inline buttons
 async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     query = update.callback_query
 
     # CallbackQueries need to be answered, even if no notification to the user is needed
     await query.answer()
 
-    if query.data == '1':
+    # handles the premium function
+    if query.data == 'upgrade':
         await query.edit_message_text(text="Thank you for choosing to upgrade!\nPay below:")
         await upgrade(update, context)
 
+    # separates the url from the callback data - and checks which option was selected
     elif query.data[0:1] == '2':
         url = query.data[2:]
         await query.edit_message_text(text=f"Selected option: Textfile")
         await getTranscript(update, context, url)
+
     elif query.data[0:1] == '3':
         url = query.data[2:]
         await query.edit_message_text(text=f"Selected option: Raw file")
         await getTranscriptRaw(update, context, url)
+
+    # will never be called but good as a failsafe
     else:
         await context.bot.send_message(text='Invalid option', chat_id=update.effective_user.id)
 
 
+# sends invoice to upgrade user to premium
 async def upgrade(update: Update, context: CallbackContext) -> None:
+    # checks that the user is premium or not
     if r.sismember('premium', update.effective_user.id):
         keyboard = [
             [KeyboardButton("Get youtube video transcript!", callback_data="1")],
@@ -209,9 +207,10 @@ async def upgrade(update: Update, context: CallbackContext) -> None:
         menu_markup = ReplyKeyboardMarkup(keyboard)
         await update.message.reply_text('You are premium!', reply_markup=menu_markup)
 
+    # generates and sends the invoice to user
     else:
         chat_id = update.effective_message.chat_id
-        title = "Premium Upgrade -Limitless Use!"
+        title = "Premium Upgrade - Limitless Use!"
         description = 'Get unlimited uses, and full access to a range of bots now, and upcoming bots!\n\nContact ' \
                       '@JacobJEdwards for details '
         payload = 'Youtube Subtitle Extractor Bot Premium'
@@ -223,6 +222,7 @@ async def upgrade(update: Update, context: CallbackContext) -> None:
         )
 
 
+# checks that the data is correct after user agrees to pay
 async def precheckout_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     query = update.pre_checkout_query
     # check the payload, is this from your bot?
@@ -233,7 +233,9 @@ async def precheckout_callback(update: Update, context: ContextTypes.DEFAULT_TYP
         await query.answer(ok=True)
 
 
+# called when the payment is successful
 async def upgradeSuccessful(update: Update, context: CallbackContext) -> None:
+    # saves user as premium - accessible from all bots linked to the database
     r.sadd('premium', update.effective_user.id)
 
     keyboard = [
@@ -244,6 +246,7 @@ async def upgradeSuccessful(update: Update, context: CallbackContext) -> None:
     await update.message.reply_text('Upgrade successful! Welcome to premium.', reply_markup=menu_markup)
 
 
+# generates the bot and handlers
 def main() -> None:
     application = Application.builder().token("5561745160:AAHLaEHPUZ1QGfdxcUrxnmJUKiI4WDo8pFY").build()
 
@@ -251,6 +254,7 @@ def main() -> None:
     application.add_handler(CommandHandler('start', start))
     application.add_handler(CommandHandler('help', helpInfo))
 
+    # handles inline keyboard
     application.add_handler(CallbackQueryHandler(button))
 
     # handles the pre-made keyboard
@@ -260,18 +264,22 @@ def main() -> None:
 
     # Pre-checkout handler to final check
     application.add_handler(PreCheckoutQueryHandler(precheckout_callback))
+    # post checkout handler
     application.add_handler(MessageHandler(filters.SUCCESSFUL_PAYMENT, upgradeSuccessful))
 
+    # handles a url being sent
     application.add_handler(MessageHandler(filters.ALL &
                                            (filters.Entity(MessageEntity.URL) | filters.Entity(
                                                MessageEntity.TEXT_LINK)),
                                            transcriptOptions))
 
+    # catch all handler
     application.add_handler(MessageHandler(filters.ALL, unknownCommand))
 
     # runs the bot
     application.run_polling()
 
 
+# calls main
 if __name__ == '__main__':
     main()

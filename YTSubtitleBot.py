@@ -62,7 +62,7 @@ async def start(update: Update, context: CallbackContext) -> None:
         await update.message.reply_text(f'You have {8 - numUses} uses remaining on your free trial.\n\nOr upgrade to '
                                         f'Premium for unlimited use across a number of different bots!')
         keyboard = [
-            [KeyboardButton("Get Youtube video transcript!", callback_data="1")],
+            [KeyboardButton("Extract subtitles!", callback_data="1")],
             [
                 KeyboardButton("Premium", callback_data="2"),
                 KeyboardButton("Support!", callback_data="3"),
@@ -71,7 +71,7 @@ async def start(update: Update, context: CallbackContext) -> None:
     else:
         await update.message.reply_text('Your account is premium!\n\nUnlimited use!')
         keyboard = [
-            [KeyboardButton("Get Youtube video transcript!", callback_data="1")],
+            [KeyboardButton("Extract subtitles!", callback_data="1")],
             [KeyboardButton("Support!", callback_data="3")],
         ]
 
@@ -108,7 +108,7 @@ async def transcriptOptions(update: Update, context: CallbackContext) -> None:
     userID = update.effective_user.id
     userKey = f'transcript:{userID}'
     numUses = r.scard(userKey)
-    global url
+
     url = update.message.text
 
     if numUses > 7 and not r.sismember('premium', userID):
@@ -122,9 +122,11 @@ async def transcriptOptions(update: Update, context: CallbackContext) -> None:
 
     elif await checkURL(update, context, url):
         print('success')
-        await update.message.reply_text("Would you like the transcript as a textfile, or raw json file ->")
-        inlineKeyboard = [[InlineKeyboardButton('Textfile', callback_data=2)], [InlineKeyboardButton('Raw file',
-                                                                                                     callback_data=3)]]
+        await update.message.reply_text("Would you like the transcript as a textfile, or raw JSON file ->")
+        inlineKeyboard = [
+            [InlineKeyboardButton('Textfile', callback_data=f'2:{url}')],
+            [InlineKeyboardButton('Raw JSON file', callback_data=f'3:{url}')]
+        ]
         reply_markup = InlineKeyboardMarkup(inlineKeyboard)
         await update.message.reply_text('Select an option:', reply_markup=reply_markup)
 
@@ -133,7 +135,7 @@ async def transcriptOptions(update: Update, context: CallbackContext) -> None:
 
 
 # downloads and sends the youtube video transcript to user
-async def getTranscript(update: Update, context: CallbackContext) -> None:
+async def getTranscript(update: Update, context: CallbackContext, url) -> None:
     # checks if url is valid
     userID = update.effective_user.id
     userKey = f'transcript:{userID}'
@@ -156,7 +158,7 @@ async def getTranscript(update: Update, context: CallbackContext) -> None:
         os.remove('transcript.txt')
 
 
-async def getTranscriptRaw(update: Update, context: CallbackContext) -> None:
+async def getTranscriptRaw(update: Update, context: CallbackContext, url) -> None:
     userID = update.effective_user.id
     userKey = f'transcript:{userID}'
     videoID = url.replace('https://www.youtube.com/watch?v=', '').split("&")[0]
@@ -180,18 +182,19 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
     # CallbackQueries need to be answered, even if no notification to the user is needed
     await query.answer()
-    print(query.data)
 
     if query.data == '1':
         await query.edit_message_text(text="Thank you for choosing to upgrade!\nPay below:")
         await upgrade(update, context)
 
-    elif query.data == '2':
+    elif query.data[0:1] == '2':
+        url = query.data[2:]
         await query.edit_message_text(text=f"Selected option: Textfile")
-        await getTranscript(update, context)
-    elif query.data == '3':
+        await getTranscript(update, context, url)
+    elif query.data[0:1] == '3':
+        url = query.data[2:]
         await query.edit_message_text(text=f"Selected option: Raw file")
-        await getTranscriptRaw(update, context)
+        await getTranscriptRaw(update, context, url)
     else:
         await context.bot.send_message(text='Invalid option', chat_id=update.effective_user.id)
 

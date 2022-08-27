@@ -11,6 +11,10 @@
 # run different functions based on output
 # alternatively do this in the transcript function right at the end - just pass the transcript to a different function?
 
+# use conversation handler instead of defining url as global variables - dont like the idea of using global variables
+# need to learn conversation handlers in conjuction with inline keyboards
+# or find out how to use callback data ?? or context ??
+
 import redis
 import requests
 import logging

@@ -1,7 +1,6 @@
 import redis
 import requests
 import logging
-import json
 import os
 
 from telegram import *
@@ -123,7 +122,7 @@ async def transcriptOptions(update: Update, context: CallbackContext) -> None:
         await update.message.reply_text('This is not a valid Youtube URL')
 
 
-# downloads and sends the youtube video transcript to user as textfile
+# downloads and sends the YouTube video transcript to user as textfile
 async def getTranscript(update: Update, context: CallbackContext, url) -> None:
     # gets the data needed
     userID = update.effective_user.id

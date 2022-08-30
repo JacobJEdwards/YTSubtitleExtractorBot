@@ -227,7 +227,7 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
     # will never be called but good as a failsafe
     else:
-        await context.bot.send_message(text='Invalid option', chat_id=update.effective_user.id)
+        await query.edit_message_text(text='Invalid option')
 
 
 # sends invoice to upgrade user to premium

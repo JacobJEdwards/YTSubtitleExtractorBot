@@ -18,6 +18,8 @@ from telegram.ext import (
 
 from youtube_transcript_api import YouTubeTranscriptApi, TranscriptsDisabled
 from youtube_transcript_api.formatters import JSONFormatter, TextFormatter
+import yt_dlp as youtube_dl
+
 
 # Enable logging
 logging.basicConfig(
@@ -134,23 +136,31 @@ async def getTranscript(update: Update, context: CallbackContext, url) -> None:
         formatter = TextFormatter()
         text_formatted = formatter.format_transcript(transcript)
 
-        # writes transcript to text file
-        with open('transcript.txt', 'w') as file:
-            file.write(text_formatted)
+        try:
+            video_info = youtube_dl.YoutubeDL().extract_info(
+                url=url, download=False
+            )
+            filename = f"{video_info['title']}.txt"
 
-            # logs the number of uses by saving url to a database
-            r.sadd(userKey, url)
+        except:
+            filename = 'transcript.txt'
+
+        with open(filename, 'w') as file:
+            file.write(text_formatted)
 
     except TranscriptsDisabled:
         await context.bot.send_message(text='*Subtitles not available on this video*', chat_id=userID,
                                        parse_mode='Markdown')
         return
 
-    await context.bot.send_document(chat_id=userID, document=open('transcript.txt', 'rb'))
+    # logs the number of uses by saving url to a database
+    r.sadd(userKey, url)
+
+    await context.bot.send_document(chat_id=userID, document=open(filename, 'rb'))
 
     # removes the files to save memory
-    if os.path.exists("transcript.txt"):
-        os.remove('transcript.txt')
+    if os.path.exists(filename):
+        os.remove(filename)
 
 
 async def getTranscriptRaw(update: Update, context: CallbackContext, url) -> None:
@@ -164,23 +174,32 @@ async def getTranscriptRaw(update: Update, context: CallbackContext, url) -> Non
         formatter = JSONFormatter()
         json_formatted = formatter.format_transcript(transcript, indent=2)
 
-        # writes raw data to json file
-        with open('rawTranscript.json', 'w') as rawFile:
-            rawFile.write(json_formatted)
+        try:
+            video_info = youtube_dl.YoutubeDL().extract_info(
+                url=url, download=False
+            )
+            filename = f"{video_info['title']}Raw.json"
 
-            # logs the number of uses by saving url to a database
-            r.sadd(userKey, url)
+        except:
+            filename = 'transcriptRaw.txt'
+
+        # writes raw data to json file
+        with open(filename, 'w') as rawFile:
+            rawFile.write(json_formatted)
 
     except TranscriptsDisabled:
         await context.bot.send_message(text='*Subtitles are not available for this video*', chat_id=userID,
                                        parse_mode='Markdown')
         return
 
-    await context.bot.send_document(chat_id=userID, document=open('rawTranscript.json', 'rb'))
+    # logs the number of uses by saving url to a database
+    r.sadd(userKey, url)
+
+    await context.bot.send_document(chat_id=userID, document=open(filename, 'rb'))
 
     # deletes the file after sending it
-    if os.path.exists('rawTranscript.json'):
-        os.remove('rawTranscript.json')
+    if os.path.exists(filename):
+        os.remove(filename)
 
 
 # handles the inline buttons

@@ -35,7 +35,7 @@ async def start(update: Update, context: CallbackContext) -> None:
     userName = update.effective_user.first_name
     userID = update.effective_user.id
     userKey = f'transcript:{userID}'
-    numUses = r.scard(userKey)
+    numUses = r.llen(userKey)
 
     if numUses == 0:
         await update.message.reply_text(f'Hello {userName}\n\nWelcome to Youtube Video Transcript Bot!\n\nThis bot is'
@@ -94,7 +94,7 @@ async def transcriptOptions(update: Update, context: CallbackContext) -> None:
     # gets user identity stuff
     userID = update.effective_user.id
     userKey = f'transcript:{userID}'
-    numUses = r.scard(userKey)
+    numUses = r.llen(userKey)
 
     url = update.message.text
 
@@ -156,7 +156,7 @@ async def getTranscript(update: Update, context: CallbackContext, url) -> None:
         return
 
     # logs the number of uses by saving url to a database
-    r.sadd(userKey, url)
+    r.lpush(userKey, url)
 
     await context.bot.delete_message(message_id=message['message_id'], chat_id=userID)
     await context.bot.send_document(chat_id=userID, document=open(filename, 'rb'))
@@ -198,7 +198,7 @@ async def getTranscriptRaw(update: Update, context: CallbackContext, url) -> Non
         return
 
     # logs the number of uses by saving url to a database
-    r.sadd(userKey, url)
+    r.lpush(userKey, url)
 
     await context.bot.delete_message(message_id=message['message_id'], chat_id=userID)
     await context.bot.send_document(chat_id=userID, document=open(filename, 'rb'))

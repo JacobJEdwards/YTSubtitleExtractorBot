@@ -138,15 +138,15 @@ async def getTranscript(update: Update, context: CallbackContext, url) -> None:
         with open('transcript.txt', 'w') as file:
             file.write(text_formatted)
 
+            # logs the number of uses by saving url to a database
+            r.sadd(userKey, url)
+
     except TranscriptsDisabled:
         await context.bot.send_message(text='*Subtitles not available on this video*', chat_id=userID,
                                        parse_mode='Markdown')
         return
 
     await context.bot.send_document(chat_id=userID, document=open('transcript.txt', 'rb'))
-
-    # logs the number of uses by saving url to a database
-    r.sadd(userKey, url)
 
     # removes the files to save memory
     if os.path.exists("transcript.txt"):
@@ -168,15 +168,15 @@ async def getTranscriptRaw(update: Update, context: CallbackContext, url) -> Non
         with open('rawTranscript.json', 'w') as rawFile:
             rawFile.write(json_formatted)
 
+            # logs the number of uses by saving url to a database
+            r.sadd(userKey, url)
+
     except TranscriptsDisabled:
         await context.bot.send_message(text='*Subtitles are not available for this video*', chat_id=userID,
                                        parse_mode='Markdown')
         return
 
     await context.bot.send_document(chat_id=userID, document=open('rawTranscript.json', 'rb'))
-
-    # logs the number of uses by saving url to a database
-    r.sadd(userKey, url)
 
     # deletes the file after sending it
     if os.path.exists('rawTranscript.json'):
@@ -231,8 +231,8 @@ async def upgrade(update: Update, context: CallbackContext) -> None:
                       '@JacobJEdwards for details '
         payload = 'Youtube Subtitle Extractor Bot Premium'
         currency = "USD"
-        price = 1
-        prices = [LabeledPrice('Upgrade', price * 100)]
+        price = 15
+        prices = [LabeledPrice('Upgrade', price * 10)]
         await context.bot.send_invoice(
             chat_id, title, description, payload, PAYMENT_TOKEN, currency, prices
         )

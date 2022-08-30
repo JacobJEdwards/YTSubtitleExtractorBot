@@ -131,6 +131,8 @@ async def getTranscript(update: Update, context: CallbackContext, url) -> None:
     userKey = f'transcript:{userID}'
     videoID = url.replace('https://www.youtube.com/watch?v=', '').split("&")[0]
 
+    message = await context.bot.send_message(text='_fetching transcript..._', chat_id=userID, parse_mode='Markdown')
+
     try:
         transcript = YouTubeTranscriptApi.get_transcript(videoID)
         formatter = TextFormatter()
@@ -149,13 +151,14 @@ async def getTranscript(update: Update, context: CallbackContext, url) -> None:
             file.write(text_formatted)
 
     except TranscriptsDisabled:
-        await context.bot.send_message(text='*Subtitles not available on this video*', chat_id=userID,
-                                       parse_mode='Markdown')
+        await context.bot.edit_message_text(text='*Subtitles are not available for this video*',
+                                            message_id=message['message_id'], chat_id=userID, parse_mode='Markdown')
         return
 
     # logs the number of uses by saving url to a database
     r.sadd(userKey, url)
 
+    await context.bot.delete_message(message_id=message['message_id'], chat_id=userID)
     await context.bot.send_document(chat_id=userID, document=open(filename, 'rb'))
 
     # removes the files to save memory
@@ -168,6 +171,8 @@ async def getTranscriptRaw(update: Update, context: CallbackContext, url) -> Non
     userID = update.effective_user.id
     userKey = f'transcript:{userID}'
     videoID = url.replace('https://www.youtube.com/watch?v=', '').split("&")[0]
+
+    message = await context.bot.send_message(text='_fetching transcript..._', chat_id=userID, parse_mode='Markdown')
 
     try:
         transcript = YouTubeTranscriptApi.get_transcript(videoID)
@@ -188,13 +193,14 @@ async def getTranscriptRaw(update: Update, context: CallbackContext, url) -> Non
             rawFile.write(json_formatted)
 
     except TranscriptsDisabled:
-        await context.bot.send_message(text='*Subtitles are not available for this video*', chat_id=userID,
-                                       parse_mode='Markdown')
+        await context.bot.edit_message_text(text='*Subtitles are not available for this video*',
+                                            message_id=message['message_id'], chat_id=userID, parse_mode='Markdown')
         return
 
     # logs the number of uses by saving url to a database
     r.sadd(userKey, url)
 
+    await context.bot.delete_message(message_id=message['message_id'], chat_id=userID)
     await context.bot.send_document(chat_id=userID, document=open(filename, 'rb'))
 
     # deletes the file after sending it

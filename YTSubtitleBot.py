@@ -110,18 +110,18 @@ async def transcriptOptions(update: Update, context: CallbackContext) -> None:
         return
 
     # if user passes the test the url is checked if its valid - if function returns true options are sent to user
-    if await checkURL(update, context, url):
-        await update.message.reply_text("Would you like the transcript as a textfile, or raw JSON file ->")
-        # creates inline keyboard and allows me to pass data to the button function using callback data
-        inlineKeyboard = [
-            [InlineKeyboardButton('Textfile', callback_data=f'2:{url}')],
-            [InlineKeyboardButton('Raw JSON file', callback_data=f'3:{url}')]
-        ]
-        reply_markup = InlineKeyboardMarkup(inlineKeyboard)
-        await update.message.reply_text('Select an option:', reply_markup=reply_markup)
+    if not await checkURL(update, context, url):
+        await update.message.reply_text('This is not a valid Youtube video URL')
+        return
 
-    else:
-        await update.message.reply_text('This is not a valid Youtube URL')
+    await update.message.reply_text("Would you like the transcript as a textfile, or raw JSON file ->")
+    # creates inline keyboard and allows me to pass data to the button function using callback data
+    inlineKeyboard = [
+        [InlineKeyboardButton('Textfile', callback_data=f'2:{url}')],
+        [InlineKeyboardButton('Raw JSON file', callback_data=f'3:{url}')]
+    ]
+    reply_markup = InlineKeyboardMarkup(inlineKeyboard)
+    await update.message.reply_text('Select an option:', reply_markup=reply_markup)
 
 
 # downloads and sends the YouTube video transcript to user as textfile

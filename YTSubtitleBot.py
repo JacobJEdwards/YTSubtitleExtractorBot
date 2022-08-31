@@ -34,8 +34,9 @@ PAYMENT_TOKEN = '284685063:TEST:ZmU4YzRkOTg0MmVm'
 async def start(update: Update, context: CallbackContext) -> None:
     userName = update.effective_user.first_name
     userID = update.effective_user.id
-    userKey = f'transcript:{userID}'
-    numUses = r.llen(userKey)
+
+    numUses = r.zscore('subtitleBot', userID)
+    numUses = 0 if numUses is None else int(numUses)
 
     if numUses == 0:
         await update.message.reply_text(f'Hello {userName}\n\nWelcome to Youtube Video Transcript Bot!\n\nThis bot is'
@@ -93,8 +94,8 @@ async def checkURL(update: Update, context: CallbackContext, url) -> bool:
 async def transcriptOptions(update: Update, context: CallbackContext) -> None:
     # gets user identity stuff
     userID = update.effective_user.id
-    userKey = f'transcript:{userID}'
-    numUses = r.llen(userKey)
+    numUses = r.zscore('subtitleBot', userID)
+    numUses = 0 if numUses is None else numUses
 
     url = update.message.text
 
@@ -156,7 +157,7 @@ async def getTranscript(update: Update, context: CallbackContext, url) -> None:
         return
 
     # logs the number of uses by saving url to a database
-    r.lpush(userKey, url)
+    r.zincrby('subtitleBot', 1, userID)
 
     await context.bot.delete_message(message_id=message['message_id'], chat_id=userID)
     await context.bot.send_document(chat_id=userID, document=open(filename, 'rb'))
@@ -198,7 +199,7 @@ async def getTranscriptRaw(update: Update, context: CallbackContext, url) -> Non
         return
 
     # logs the number of uses by saving url to a database
-    r.lpush(userKey, url)
+    r.zincrby('subtitleBot', 1, userID)
 
     await context.bot.delete_message(message_id=message['message_id'], chat_id=userID)
     await context.bot.send_document(chat_id=userID, document=open(filename, 'rb'))

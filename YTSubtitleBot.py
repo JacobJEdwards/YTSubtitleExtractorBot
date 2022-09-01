@@ -13,6 +13,8 @@ from telegram import (
     MessageEntity
 )
 
+from telegram.error import TimedOut
+
 from telegram.ext import (
     CommandHandler,
     MessageHandler,
@@ -158,20 +160,25 @@ async def getTranscript(update: Update, context: CallbackContext, url) -> None:
         with open(filename, 'w') as file:
             file.write(text_formatted)
 
+        await context.bot.delete_message(message_id=message['message_id'], chat_id=userID)
+        await context.bot.send_document(chat_id=userID, document=open(filename, 'rb'), write_timeout=45)
+
+        # logs the number of uses by saving url to a database
+        r.zincrby('subtitleBot', 1, userID)
+
     except TranscriptsDisabled:
         await context.bot.edit_message_text(text='*Subtitles are not available for this video*',
                                             message_id=message['message_id'], chat_id=userID, parse_mode='Markdown')
         return
 
-    # logs the number of uses by saving url to a database
-    r.zincrby('subtitleBot', 1, userID)
+    except TimedOut:
+        await context.bot.edit_message_text_message(text='Sorry, I\'m having some trouble sending that.\nPlease try '
+                                                         'again.', message_id=message['message_id'], chat_id=userID)
 
-    await context.bot.delete_message(message_id=message['message_id'], chat_id=userID)
-    await context.bot.send_document(chat_id=userID, document=open(filename, 'rb'))
-
-    # removes the files to save memory
-    if os.path.exists(filename):
-        os.remove(filename)
+    finally:
+        # removes the files to save memory
+        if os.path.exists(filename):
+            os.remove(filename)
 
 
 async def getTranscriptRaw(update: Update, context: CallbackContext, url) -> None:
@@ -199,20 +206,25 @@ async def getTranscriptRaw(update: Update, context: CallbackContext, url) -> Non
         with open(filename, 'w') as rawFile:
             rawFile.write(json_formatted)
 
+        # logs the number of uses by saving url to a database
+        r.zincrby('subtitleBot', 1, userID)
+
+        await context.bot.delete_message(message_id=message['message_id'], chat_id=userID)
+        await context.bot.send_document(chat_id=userID, document=open(filename, 'rb'))
+
     except TranscriptsDisabled:
         await context.bot.edit_message_text(text='*Subtitles are not available for this video*',
                                             message_id=message['message_id'], chat_id=userID, parse_mode='Markdown')
         return
 
-    # logs the number of uses by saving url to a database
-    r.zincrby('subtitleBot', 1, userID)
+    except TimedOut:
+        await context.bot.edit_message_text_message(text='Sorry, I\'m having some trouble sending that.\nPlease try '
+                                                         'again.', message_id=message['message_id'], chat_id=userID)
 
-    await context.bot.delete_message(message_id=message['message_id'], chat_id=userID)
-    await context.bot.send_document(chat_id=userID, document=open(filename, 'rb'))
-
-    # deletes the file after sending it
-    if os.path.exists(filename):
-        os.remove(filename)
+    finally:
+        # deletes the file after sending it
+        if os.path.exists(filename):
+            os.remove(filename)
 
 
 # handles the inline buttons

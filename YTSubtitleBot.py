@@ -129,7 +129,6 @@ async def transcriptOptions(update: Update, context: CallbackContext) -> None:
 async def getTranscript(update: Update, context: CallbackContext, url) -> None:
     # gets the data needed
     userID = update.effective_user.id
-    userKey = f'transcript:{userID}'
     videoID = url.replace('https://www.youtube.com/watch?v=', '').split("&")[0]
 
     message = await context.bot.send_message(text='_fetching transcript..._', chat_id=userID, parse_mode='Markdown')
@@ -170,7 +169,6 @@ async def getTranscript(update: Update, context: CallbackContext, url) -> None:
 async def getTranscriptRaw(update: Update, context: CallbackContext, url) -> None:
     # gets data needed
     userID = update.effective_user.id
-    userKey = f'transcript:{userID}'
     videoID = url.replace('https://www.youtube.com/watch?v=', '').split("&")[0]
 
     message = await context.bot.send_message(text='_fetching transcript..._', chat_id=userID, parse_mode='Markdown')

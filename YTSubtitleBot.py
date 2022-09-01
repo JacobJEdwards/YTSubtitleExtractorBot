@@ -3,17 +3,25 @@ import requests
 import logging
 import os
 
-from telegram import *
+from telegram import (
+    Update,
+    ReplyKeyboardMarkup,
+    KeyboardButton,
+    InlineKeyboardMarkup,
+    InlineKeyboardButton,
+    LabeledPrice,
+    MessageEntity
+)
 
 from telegram.ext import (
-    Application,
     CommandHandler,
     MessageHandler,
     filters,
     CallbackContext,
     CallbackQueryHandler,
     ContextTypes,
-    PreCheckoutQueryHandler
+    PreCheckoutQueryHandler,
+    ApplicationBuilder
 )
 
 from youtube_transcript_api import YouTubeTranscriptApi, TranscriptsDisabled
@@ -288,7 +296,7 @@ async def upgradeSuccessful(update: Update, context: CallbackContext) -> None:
 
 # generates the bot and handlers
 def main() -> None:
-    application = Application.builder().token("5561745160:AAHLaEHPUZ1QGfdxcUrxnmJUKiI4WDo8pFY").build()
+    application = ApplicationBuilder().token("5561745160:AAHLaEHPUZ1QGfdxcUrxnmJUKiI4WDo8pFY").build()
 
     # basic command handlers
     application.add_handler(CommandHandler('start', start))

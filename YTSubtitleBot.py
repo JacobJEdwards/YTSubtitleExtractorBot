@@ -38,7 +38,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 r = redis.Redis()
-PAYMENT_TOKEN = '284685063:TEST:ZmU4YzRkOTg0MmVm'
+PAYMENT_TOKEN = '350862534:LIVE:NjZhMjBlMmI2ZjIx'
 
 
 async def start(update: Update, context: CallbackContext) -> None:

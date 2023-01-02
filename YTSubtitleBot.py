@@ -58,17 +58,17 @@ async def start(update: Update, context: CallbackContext) -> None:
         await update.message.reply_text(f'You have {8 - numUses} uses remaining on your free trial.\n\nOr upgrade to '
                                         f'Premium for unlimited use across a number of different bots!')
         keyboard = [
-            [KeyboardButton("Extract subtitles!", callback_data="1")],
+            [KeyboardButton("Extract subtitles!")],
             [
-                KeyboardButton("Premium", callback_data="2"),
-                KeyboardButton("Support!", callback_data="3"),
+                KeyboardButton("Premium"),
+                KeyboardButton("Support!"),
             ],
         ]
     else:
         await update.message.reply_text('Your account is premium!\n\nUnlimited use!')
         keyboard = [
-            [KeyboardButton("Extract subtitles!", callback_data="1")],
-            [KeyboardButton("Support!", callback_data="3")],
+            [KeyboardButton("Extract subtitles!")],
+            [KeyboardButton("Support!")],
         ]
 
     menu_markup = ReplyKeyboardMarkup(keyboard)
@@ -260,8 +260,8 @@ async def upgrade(update: Update, context: CallbackContext) -> None:
     # checks that the user is premium or not
     if r.sismember('premium', update.effective_user.id):
         keyboard = [
-            [KeyboardButton("Get youtube video transcript!", callback_data="1")],
-            [KeyboardButton("Support!", callback_data="3")],
+            [KeyboardButton("Get youtube video transcript!")],
+            [KeyboardButton("Support!")],
         ]
 
         menu_markup = ReplyKeyboardMarkup(keyboard)
@@ -299,8 +299,8 @@ async def upgradeSuccessful(update: Update, context: CallbackContext) -> None:
     r.sadd('premium', update.effective_user.id)
 
     keyboard = [
-        [KeyboardButton("Extract subtitles!", callback_data="1")],
-        [KeyboardButton("Support!", callback_data="3")],
+        [KeyboardButton("Extract subtitles!")],
+        [KeyboardButton("Support!")],
     ]
     menu_markup = ReplyKeyboardMarkup(keyboard)
     await update.message.reply_text('Upgrade successful! Welcome to premium.', reply_markup=menu_markup)
@@ -308,7 +308,7 @@ async def upgradeSuccessful(update: Update, context: CallbackContext) -> None:
 
 # generates the bot and handlers
 def main() -> None:
-    application = ApplicationBuilder().token("5561745160:AAHLaEHPUZ1QGfdxcUrxnmJUKiI4WDo8pFY").build()
+    application = ApplicationBuilder().token("5561745160:AAHLaEHPUZ1QGfdxcUrxnmJUKiI4WDo8pFY").arbitrary_callback_data(True).build()
 
     # basic command handlers
     application.add_handler(CommandHandler('start', start))

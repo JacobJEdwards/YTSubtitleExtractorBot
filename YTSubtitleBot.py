@@ -30,6 +30,13 @@ from youtube_transcript_api import YouTubeTranscriptApi, TranscriptsDisabled
 from youtube_transcript_api.formatters import JSONFormatter, TextFormatter
 import yt_dlp as youtube_dl
 
+from dotenv import load_dotenv
+
+load_dotenv()
+
+PAYMENT_TOKEN: str = os.getenv('PAYMENT_TOKEN', '')
+BOT_API_TOKEN: str = os.getenv('BOT_API_TOKEN', '')
+
 
 # Enable logging
 logging.basicConfig(
@@ -38,8 +45,6 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 r = redis.Redis()
-PAYMENT_TOKEN = '350862534:LIVE:NjZhMjBlMmI2ZjIx'
-
 
 async def start(update: Update, context: CallbackContext) -> None:
     userName = update.effective_user.first_name
@@ -308,7 +313,7 @@ async def upgradeSuccessful(update: Update, context: CallbackContext) -> None:
 
 # generates the bot and handlers
 def main() -> None:
-    application = ApplicationBuilder().token("5561745160:AAHLaEHPUZ1QGfdxcUrxnmJUKiI4WDo8pFY").arbitrary_callback_data(True).build()
+    application = ApplicationBuilder().token(BOT_API_TOKEN).arbitrary_callback_data(True).build()
 
     # basic command handlers
     application.add_handler(CommandHandler('start', start))

@@ -177,7 +177,8 @@ async def getTranscript(update: Update, context: CallbackContext, url) -> None:
             video_info = youtube_dl.YoutubeDL().extract_info(url=url, download=False)
             filename = f"{video_info['title']}.txt"
 
-        except:
+        except Exception as e:
+            logger.error(e)
             filename = "transcript.txt"
 
         with open(filename, "w") as file:
@@ -287,12 +288,12 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     # separates the url from the callback data - and checks which option was selected
     elif query.data[0:1] == "2":
         url = query.data[2:]
-        await query.edit_message_text(text=f"Selected option: Textfile")
+        await query.edit_message_text(text="Selected option: Textfile")
         await getTranscript(update, context, url)
 
     elif query.data[0:1] == "3":
         url = query.data[2:]
-        await query.edit_message_text(text=f"Selected option: Raw file")
+        await query.edit_message_text(text="Selected option: Raw file")
         await getTranscriptRaw(update, context, url)
 
     # will never be called but good as a failsafe
